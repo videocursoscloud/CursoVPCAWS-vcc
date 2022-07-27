@@ -1,0 +1,12 @@
+Documentacion
+https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html
+
+
+Repo 
+https://github.com/videocursoscloud/CursoVPCAWS-vcc
+
+
+Instalar dia
+
+sudo apt update
+sudo apt install dia -y

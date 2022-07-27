@@ -1,0 +1,216 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Este stack va a crear nuestras vpc
+
+Parameters:
+  Environment:
+    Type: String
+  VPCCidrBlock:
+    Type: String
+  PublicSubnectCidrBlocks:
+    Type: CommaDelimitedList
+  PrivateSubnectCidrBlocks:
+    Type: CommaDelimitedList    
+
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: !Ref VPCCidrBlock
+      EnableDnsHostnames: 'true'
+      EnableDnsSupport: 'true'
+      Tags: 
+       - Key: Name
+         Value: !Join [ "-", [ "vpc", !Ref Environment ] ]
+  SubnetPublic1:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: "eu-west-2a"
+      CidrBlock: !Select [ 0, !Ref PublicSubnectCidrBlocks ] 
+      MapPublicIpOnLaunch: 'true'
+      Tags: 
+       - Key: Name
+         Value: !Join [ "-", [ "public-subnet-1", !Ref Environment ] ]
+      VpcId: !Ref VPC
+  SubnetPublic2:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: "eu-west-2b"
+      CidrBlock: !Select [ 1, !Ref PublicSubnectCidrBlocks ] 
+      MapPublicIpOnLaunch: 'true'
+      Tags: 
+       - Key: Name
+         Value: !Join [ "-", [ "public-subnet-2", !Ref Environment ] ]
+      VpcId: !Ref VPC
+  SubnetPublic3:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: "eu-west-2c"
+      CidrBlock: !Select [ 2, !Ref PublicSubnectCidrBlocks ] 
+      MapPublicIpOnLaunch: 'true'
+      Tags: 
+       - Key: Name
+         Value: !Join [ "-", [ "public-subnet-3", !Ref Environment ] ]
+      VpcId: !Ref VPC
+  SubnetPrivate1:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: "eu-west-2a"
+      CidrBlock: !Select [ 0, !Ref PrivateSubnectCidrBlocks ] 
+      MapPublicIpOnLaunch: 'false'
+      Tags: 
+       - Key: Name
+         Value: !Join [ "-", [ "private-subnet-1", !Ref Environment ] ]
+      VpcId: !Ref VPC
+  SubnetPrivate2:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: "eu-west-2b"
+      CidrBlock: !Select [ 1, !Ref PrivateSubnectCidrBlocks ] 
+      MapPublicIpOnLaunch: 'false'
+      Tags: 
+       - Key: Name
+         Value: !Join [ "-", [ "private-subnet-2", !Ref Environment ] ]
+      VpcId: !Ref VPC
+  SubnetPrivate3:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      AvailabilityZone: "eu-west-2c"
+      CidrBlock: !Select [ 2, !Ref PrivateSubnectCidrBlocks ] 
+      MapPublicIpOnLaunch: 'false'
+      Tags: 
+       - Key: Name
+         Value: !Join [ "-", [ "private-subnet-3", !Ref Environment ] ]
+      VpcId: !Ref VPC      
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  InterGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties: 
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      VpcId: !Ref VPC
+  PublicRouteToInternet:
+    Type: AWS::EC2::Route
+    Properties: 
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+  SubnetPublic1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref SubnetPublic1
+  SubnetPublic2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref SubnetPublic2
+  SubnetPublic3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref SubnetPublic3
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      VpcId: !Ref VPC
+  PrivateRouteToInternet:
+    Type: AWS::EC2::Route
+    Properties: 
+      NatGatewayId: !Ref NatGateway1
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+  SubnetPrivate1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref SubnetPrivate1
+  SubnetPrivate2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref SubnetPrivate2
+  SubnetPrivate3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties: 
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref SubnetPrivate3
+  NatGateway1EIP:
+    Type: AWS::EC2::EIP
+    Properties: 
+      Tags: 
+       - Key: Name
+         Value: !Join [ "-", [ "NatGatewayEIP1", !Ref Environment ] ]  
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      AllocationId: !GetAtt NatGateway1EIP.AllocationId
+      ConnectivityType: public
+      SubnetId: !Ref SubnetPublic3
+      Tags: 
+       - Key: Name
+         Value: !Join [ "-", [ "NatGateway1", !Ref Environment ] ]
+
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http and ssh from internal network
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref VPCCidrBlock
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref VPCCidrBlock     
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow ssh from anywhere
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0          
+  BastionInstance:
+    Type: AWS::EC2::Instance
+    Properties: 
+      SubnetId: !Ref SubnetPublic1
+      SecurityGroupIds: 
+        - !Ref BastionSecurityGroup
+      KeyName: keypairpruebas
+      InstanceType: t3.micro
+      ImageId: ami-0fb391cce7a602d1f
+      Tags: 
+       - Key: Name
+         Value: !Join [ "-", [ "Bastion", !Ref Environment ] ]         
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    Properties: 
+      SubnetId: !Ref SubnetPrivate1
+      SecurityGroupIds: 
+        - !Ref WebServerSecurityGroup
+      KeyName: keypairpruebas
+      InstanceType: t3.micro
+      ImageId: ami-0fb391cce7a602d1f  
+      Tags: 
+       - Key: Name
+         Value: !Join [ "-", [ "WebServer", !Ref Environment ] ]      
